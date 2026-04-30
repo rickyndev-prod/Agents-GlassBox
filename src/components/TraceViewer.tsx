@@ -127,8 +127,7 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
     };
 
     eventSource.onerror = (err) => {
-      console.error("EventSource failed:", err);
-      eventSource.close();
+      console.error("EventSource failed, attempting to reconnect...", err);
     };
 
     return () => {

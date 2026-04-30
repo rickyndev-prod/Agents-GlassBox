@@ -21,23 +21,34 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      subscriber.on('message', (ch, message) => {
+      const messageHandler = (ch: string, message: string) => {
         if (ch === channel) {
-          // Send event to the client using SSE format
-          controller.enqueue(new TextEncoder().encode(`data: ${message}\n\n`));
+          try {
+            // Send event to the client using SSE format
+            controller.enqueue(new TextEncoder().encode(`data: ${message}\n\n`));
+          } catch (e) {
+             // Controller might be closed
+          }
         }
-      });
+      };
+
+      subscriber.on('message', messageHandler);
 
       // Keep connection alive
       const keepAlive = setInterval(() => {
-        controller.enqueue(new TextEncoder().encode(`:\n\n`));
+        try {
+          controller.enqueue(new TextEncoder().encode(`:\n\n`));
+        } catch (e) {
+          clearInterval(keepAlive);
+        }
       }, 15000);
 
       // Handle client disconnect
       request.signal.addEventListener('abort', () => {
         clearInterval(keepAlive);
         subscriber.unsubscribe(channel);
-        controller.close();
+        subscriber.off('message', messageHandler);
+        try { controller.close(); } catch (e) {}
       });
     },
   });
