@@ -42,14 +42,22 @@ npm install
 ```
 
 ### Step 2: Configure Environment Variables
-Agents Glass-Box requires an Upstash Redis database to queue telemetry events instantly. 
-Create a `.env.local` file in the root of the project and add your Upstash credentials:
+Agents Glass-Box utilizes a dual-database architecture:
+1. **Upstash Redis**: Used as a lightning-fast ephemeral message broker for live-streaming of real-time agent thoughts.
+2. **PostgreSQL (Supabase)**: Used as persistent cold-storage to archive historical traces. This is essential so you can search past agent executions, analyze long-term swarm performance metrics, and maintain strict audit logs of LLM decisions after the live stream ends.
+
+Create a `.env.local` file in the root of the project and add your credentials:
 ```env
+# Ephemeral Queue (Upstash Redis)
 KV_REST_API_READ_ONLY_TOKEN="your_read_only_token"
 KV_REST_API_TOKEN="your_api_token"
 KV_REST_API_URL="https://your-upstash-url.upstash.io"
 KV_URL="rediss://default:your_token@your-upstash-url.upstash.io:6379"
 KV_REDIS_URL="rediss://default:your_token@your-upstash-url.upstash.io:6379"
+
+# Persistent Archive (Supabase PostgreSQL)
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
 ```
 
 ### Step 3: Launch the Dashboard
@@ -95,7 +103,9 @@ Once your instrumented swarm runs:
 ## 🛠️ Architecture
 
 - **Frontend**: Next.js (App Router), TailwindCSS, React Flow (Graph UI).
-- **Ingestion API**: A specialized Next.js route handler (`/api/ingest`) utilizing Upstash Redis Streams for lightning-fast ephemeral event queuing.
+- **Ingestion API**: A specialized Next.js route handler (`/api/ingest`) utilizing a dual-pipeline:
+  - **Upstash Redis Streams** for lightning-fast ephemeral event broadcasting.
+  - **Supabase PostgreSQL** for long-term historical tracing and audit compliance.
 - **Layout Engine**: Dagre.js for dynamic, conflict-free directional graph layouts (Left-to-Right).
 
 <br />
