@@ -13,7 +13,7 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Terminal, Network, Activity } from 'lucide-react';
+import { Terminal, Network, Activity, ChevronLeft, ChevronRight } from 'lucide-react';
 import dagre from 'dagre';
 
 type TraceEvent = {
@@ -70,6 +70,7 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedEvent, setSelectedEvent] = useState<TraceEvent | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     if (!traceId) return;
@@ -84,25 +85,49 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
 
         // Add to graph
         setNodes((nds) => {
+          let bgColor = '#fff';
+          let borderColor = '#94a3b8';
+          let titleColor = '#2563eb';
+          let icon = '⚡';
+          let title = newEvent.event_type.replace('_', ' ').toUpperCase();
+          let subtext = newEvent.span_id.substring(0, 12);
+
+          if (newEvent.event_type === 'task_start') {
+            bgColor = '#f0fdf4'; borderColor = '#22c55e'; titleColor = '#16a34a'; icon = '🎯';
+            subtext = 'Root Task';
+          } else if (newEvent.event_type === 'tool_call') {
+            bgColor = '#eff6ff'; borderColor = '#3b82f6'; titleColor = '#2563eb'; icon = '🛠️';
+            if (newEvent.context_payload?.tool) subtext = newEvent.context_payload.tool;
+          } else if (newEvent.event_type === 'reasoning') {
+            bgColor = '#fefce8'; borderColor = '#eab308'; titleColor = '#ca8a04'; icon = '🧠';
+            subtext = 'Agent Thinking';
+          } else if (newEvent.event_type === 'tool_result' || newEvent.event_type === 'task_complete') {
+            bgColor = '#fdf2f8'; borderColor = '#ec4899'; titleColor = '#db2777'; icon = '✅';
+            subtext = 'Result Generated';
+          }
+
           const newNode: Node = {
             id: newEvent.span_id,
-            position: { x: 0, y: 0 }, // Will be updated by dagre
+            position: { x: 0, y: 0 },
             data: { 
               label: (
-                <div className="flex flex-col items-center p-2 text-xs">
-                  <div className="font-bold text-blue-600 mb-1">{newEvent.event_type}</div>
-                  <div className="text-gray-500 truncate w-full text-center">
-                    {newEvent.span_id.substring(0, 12)}
+                <div className="flex flex-col items-start text-left w-full overflow-hidden">
+                  <div className="font-bold flex items-center gap-1 mb-1 text-[11px] tracking-wide" style={{ color: titleColor }}>
+                    <span>{icon}</span> {title}
+                  </div>
+                  <div className="text-gray-700 truncate w-full text-[13px] font-semibold">
+                    {subtext}
                   </div>
                 </div>
               ) 
             },
             style: { 
-              border: '1px solid #94a3b8', 
+              border: `2px solid ${borderColor}`, 
               borderRadius: '8px',
-              padding: '10px',
-              background: '#fff',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+              padding: '10px 14px',
+              background: bgColor,
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+              width: 220,
             }
           };
 
@@ -138,7 +163,7 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
   // Apply layout whenever nodes or edges change in length
   useEffect(() => {
     if (nodes.length > 0) {
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges);
+      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
       // Only set if they actually changed position to prevent infinite loops
       const hasChanged = layoutedNodes.some((node, i) => 
         node.position.x !== nodes[i].position.x || node.position.y !== nodes[i].position.y
@@ -158,11 +183,22 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
       {/* Left Sidebar: Real-time Terminal Stream */}
-      <div className="w-1/3 bg-gray-900 text-gray-100 flex flex-col border-r border-gray-700">
-        <div className="p-4 bg-gray-800 border-b border-gray-700 flex items-center space-x-2">
-          <Terminal size={18} className="text-blue-400" />
-          <h2 className="font-semibold text-sm tracking-wider uppercase">Live Thought Stream</h2>
-        </div>
+      <div className={`${isSidebarOpen ? 'w-1/3' : 'w-0'} bg-gray-900 text-gray-100 flex flex-col border-r border-gray-700 transition-all duration-300 relative z-30 shrink-0`}>
+        
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute -right-4 top-1/2 transform -translate-y-1/2 bg-indigo-600 text-white rounded-full p-1.5 shadow-lg z-50 hover:bg-indigo-500 transition-colors border border-indigo-400 flex items-center justify-center cursor-pointer"
+        >
+          {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+        </button>
+
+        {/* Inner Content Wrapper */}
+        <div className={`flex flex-col h-full w-full overflow-hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200`}>
+          <div className="p-4 bg-gray-800 border-b border-gray-700 flex items-center space-x-2 shrink-0">
+            <Terminal size={18} className="text-blue-400 shrink-0" />
+            <h2 className="font-semibold text-sm tracking-wider uppercase whitespace-nowrap">Live Thought Stream</h2>
+          </div>
         <div className="flex-1 p-4 overflow-y-auto font-mono text-sm space-y-4 scroll-smooth">
           {events.length === 0 ? (
             <div className="text-gray-500 italic animate-pulse flex items-center gap-2">
@@ -182,6 +218,7 @@ export default function TraceViewer({ traceId }: { traceId: string }) {
               </div>
             ))
           )}
+        </div>
         </div>
       </div>
 
