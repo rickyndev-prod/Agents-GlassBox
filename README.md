@@ -9,6 +9,10 @@
   [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](#)
 
   <p>Bridge the "Debuggability Gap" and eliminate the AI Black Box.</p>
+  
+  <br />
+  
+  <img src="public/glassbox-demo.gif" alt="Agents Glass-Box Live Trace Demo" width="800" />
 </div>
 
 <br />
