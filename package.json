@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:migrate": "node scripts/migrate.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@xyflow/react": "^12.10.2",
     "dagre": "^0.8.5",
     "dotenv": "^17.4.2",
