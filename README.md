@@ -31,35 +31,64 @@ As AI agents scale from single-shot tasks to massive, deliberating swarms (like 
 
 <br />
 
-## 🚀 Getting Started
+## 🚀 Full Installation & Usage Guide
 
-### 1. Launch the Glass-Box Dashboard
-Clone the repository and spin up the visualizer on its dedicated port:
+### Step 1: Clone & Install
+Clone the repository and install the dependencies:
 ```bash
+git clone https://github.com/rickyndev-prod/Agents-GlassBox.git
+cd Agents-GlassBox/web
 npm install
-npm run dev
-# The dashboard will automatically bind to http://localhost:3001
 ```
 
-### 2. Instrument Your AI Agents
-Drop the `glassbox.ts` SDK into your primary AI application. Initialize it using a unique Trace ID, and dispatch events:
+### Step 2: Configure Environment Variables
+Agents Glass-Box requires an Upstash Redis database to queue telemetry events instantly. 
+Create a `.env.local` file in the root of the project and add your Upstash credentials:
+```env
+KV_REST_API_READ_ONLY_TOKEN="your_read_only_token"
+KV_REST_API_TOKEN="your_api_token"
+KV_REST_API_URL="https://your-upstash-url.upstash.io"
+KV_URL="rediss://default:your_token@your-upstash-url.upstash.io:6379"
+KV_REDIS_URL="rediss://default:your_token@your-upstash-url.upstash.io:6379"
+```
+
+### Step 3: Launch the Dashboard
+Start the Glass-Box development server. It is configured to run on Port `3001` so it doesn't conflict with your primary Next.js applications (which usually run on `3000`).
+```bash
+npm run dev
+```
+Open your browser and navigate to `http://localhost:3001`.
+
+### Step 4: Instrument Your AI Agents
+To stream telemetry from your external AI apps to Glass-Box, you must include the `glassbox.ts` SDK file in your main application (e.g., inside `src/lib/glassbox.ts`).
+
+Once included, initialize the telemetry class using a unique Trace ID, and dispatch events natively from your agent code:
+
 ```typescript
 import { GlassBoxTelemetry } from './lib/glassbox';
 
+// 1. Initialize with a unique Trace ID (e.g. for a specific task or swarm)
 const telemetry = new GlassBoxTelemetry('swarm-12345');
 
-// Track Root Task
+// 2. Track the Root Task starting
 telemetry.taskStart('task-1', 'Evaluate Procurement Tender');
 
-// Track Agent Tool Use
+// 3. Track Agent Tool Execution
 telemetry.toolCall('agent-node', 'task-1', 'Financial Risk Officer', { budget: '5M' });
 
-// Track Agent Reasoning
+// 4. Track Agent Reasoning or Thoughts
 telemetry.reasoning('thought-node', 'agent-node', 'Concerns regarding budget liquidity.');
+
+// 5. Track Final Agent Results
+telemetry.toolResult('result-node', 'agent-node', 'VERDICT: REJECT');
 ```
 
-### 3. Trace Execution
-Once your swarm executes, grab the `Trace ID` printed in your terminal and drop it into the search bar at `http://localhost:3001`. The swarm will construct itself visually in real time.
+### Step 5: Trace Execution Live
+Once your instrumented swarm runs:
+1. Grab the `Trace ID` (e.g., `swarm-12345`).
+2. Type it into the search bar at the top of your Glass-Box Dashboard (`http://localhost:3001`).
+3. Press **Enter**.
+4. The React Flow graph will build the Swarm's entire logic tree, color-coded and hierarchical, in real-time!
 
 <br />
 
